@@ -1,0 +1,332 @@
+/* ── Page Layout ── */
+.wl-page {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #fce4f3 0%, #e8eafe 40%, #d4f5ee 100%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px 16px 48px;
+  box-sizing: border-box;
+  font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* ── Toast ── */
+.wl-toast {
+  position: fixed;
+  top: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: #fff;
+  color: #444;
+  padding: 10px 22px;
+  border-radius: 999px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+  font-size: 14px;
+  font-weight: 500;
+  z-index: 999;
+  animation: wl-fadein 0.25s ease;
+}
+@keyframes wl-fadein {
+  from { opacity: 0; transform: translateX(-50%) translateY(-8px); }
+  to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+}
+
+/* ── Header ── */
+.wl-header {
+  width: 100%;
+  max-width: 560px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 20px;
+}
+.wl-header-icon {
+  font-size: 40px;
+  line-height: 1;
+}
+.wl-title {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 700;
+  color: #3d3552;
+  letter-spacing: -0.5px;
+}
+.wl-subtitle {
+  margin: 2px 0 0;
+  font-size: 13px;
+  color: #8a7fa0;
+}
+
+/* ── Stats Bar ── */
+.wl-stats {
+  width: 100%;
+  max-width: 560px;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 2px 12px rgba(100,80,160,0.08);
+  display: flex;
+  align-items: center;
+  justify-content: space-around;
+  padding: 14px 16px;
+  margin-bottom: 18px;
+}
+.wl-stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+.wl-stat-val {
+  font-size: 20px;
+  font-weight: 700;
+  color: #6050b0;
+}
+.wl-stat-lbl {
+  font-size: 11px;
+  color: #9e95b5;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.wl-stat-divider {
+  width: 1px;
+  height: 36px;
+  background: #eeeaf5;
+}
+
+/* ── Card ── */
+.wl-card {
+  width: 100%;
+  max-width: 560px;
+  background: #fff;
+  border-radius: 20px;
+  box-shadow: 0 2px 16px rgba(100,80,160,0.08);
+  padding: 20px;
+  box-sizing: border-box;
+  margin-bottom: 16px;
+}
+.wl-section-title {
+  margin: 0 0 16px;
+  font-size: 16px;
+  font-weight: 600;
+  color: #3d3552;
+}
+
+/* ── Form ── */
+.wl-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.wl-form-row {
+  display: flex;
+  gap: 10px;
+}
+.wl-form-row-3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 10px;
+}
+.wl-input-flex {
+  flex: 1;
+}
+.wl-label-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  color: #8a7fa0;
+  font-weight: 500;
+}
+.wl-input,
+.wl-select {
+  padding: 10px 12px;
+  border: 1.5px solid #e8e2f5;
+  border-radius: 10px;
+  font-size: 14px;
+  color: #3d3552;
+  background: #faf8ff;
+  outline: none;
+  transition: border-color 0.15s;
+  width: 100%;
+  box-sizing: border-box;
+}
+.wl-input:focus,
+.wl-select:focus {
+  border-color: #a78bdf;
+  background: #fff;
+}
+.wl-select {
+  cursor: pointer;
+  min-width: 120px;
+}
+.wl-btn-primary {
+  padding: 12px;
+  background: linear-gradient(135deg, #b48ce8 0%, #7c9ef5 100%);
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s, transform 0.1s;
+  letter-spacing: 0.2px;
+}
+.wl-btn-primary:hover {
+  opacity: 0.92;
+  transform: translateY(-1px);
+}
+.wl-btn-primary:active {
+  transform: translateY(0);
+}
+
+/* ── Filter Row ── */
+.wl-filter-row {
+  width: 100%;
+  max-width: 560px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.wl-filter-btn {
+  padding: 6px 14px;
+  border-radius: 999px;
+  border: 1.5px solid #e0d8f0;
+  background: #fff;
+  color: #6a5a8a;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+.wl-filter-btn.active {
+  background: #f0ebff;
+  border-color: #a78bdf;
+  color: #6040b8;
+  font-weight: 600;
+}
+
+/* ── Entry List ── */
+.wl-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.wl-entry {
+  display: flex;
+  align-items: flex-start;
+  border-radius: 12px;
+  padding: 12px 14px;
+  gap: 10px;
+  animation: wl-slide-in 0.2s ease;
+}
+@keyframes wl-slide-in {
+  from { opacity: 0; transform: translateY(-6px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.wl-entry-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.wl-entry-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.wl-entry-name {
+  font-size: 15px;
+  color: #2e2840;
+}
+.wl-badge {
+  font-size: 11px;
+  color: #fff;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+}
+.wl-entry-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 13px;
+  color: #5a5070;
+}
+.wl-volume {
+  font-size: 11px;
+  color: #9e95b5;
+}
+.wl-entry-note {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: #7a6e90;
+  font-style: italic;
+}
+.wl-delete-btn {
+  background: none;
+  border: none;
+  color: #c0aed8;
+  font-size: 14px;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 6px;
+  line-height: 1;
+  transition: color 0.15s, background 0.15s;
+  flex-shrink: 0;
+}
+.wl-delete-btn:hover {
+  color: #e05a5a;
+  background: rgba(224,90,90,0.1);
+}
+
+/* ── Empty State ── */
+.wl-empty {
+  text-align: center;
+  padding: 24px 0 12px;
+  color: #9e95b5;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+.wl-empty-icon {
+  font-size: 36px;
+}
+.wl-empty p {
+  font-size: 14px;
+}
+
+/* ── Footer ── */
+.wl-footer {
+  margin-top: 12px;
+  font-size: 13px;
+  color: #9e95b5;
+  text-align: center;
+}
+
+/* ── Mobile ── */
+@media (max-width: 480px) {
+  .wl-title {
+    font-size: 22px;
+  }
+  .wl-form-row {
+    flex-direction: column;
+  }
+  .wl-form-row-3 {
+    grid-template-columns: 1fr 1fr;
+  }
+  .wl-form-row-3 > :last-child {
+    grid-column: 1 / -1;
+  }
+  .wl-stat-val {
+    font-size: 17px;
+  }
+  .wl-stats {
+    padding: 12px 8px;
+  }
+}
