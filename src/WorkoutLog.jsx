@@ -16,6 +16,68 @@ const CATEGORY_COLORS = {
 
 const today = () => new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
 
+const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+const SPLIT_DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
+
+const WORKOUT_SPLIT = {
+  Monday: {
+    label: 'Upper – Chest Focus',
+    exercises: [
+      { id: 'mon-1', name: 'Flat Bench Press',            sets: 3, reps: '10–12', category: 'Chest' },
+      { id: 'mon-2', name: 'Incline DB Press',            sets: 3, reps: '10–12', category: 'Chest' },
+      { id: 'mon-3', name: 'Lat Pull-downs',              sets: 3, reps: '10–12', category: 'Back' },
+      { id: 'mon-4', name: 'Shoulder Press (DB or Bar)',  sets: 3, reps: '10–12', category: 'Shoulders' },
+      { id: 'mon-5', name: 'Lateral Raises',              sets: 4, reps: '15–20', category: 'Shoulders' },
+      { id: 'mon-6', name: 'Tricep Pushdowns',            sets: 2, reps: '12–15', category: 'Arms' },
+      { id: 'mon-7', name: 'Hammer Curls',                sets: 2, reps: '12–15', category: 'Arms' },
+    ],
+  },
+  Tuesday: {
+    label: 'Lower – Quadriceps Focus',
+    exercises: [
+      { id: 'tue-1', name: 'Back Squats or Leg Press',    sets: 3, reps: '10–12', category: 'Legs' },
+      { id: 'tue-2', name: 'Leg Extensions',              sets: 3, reps: '12–15', category: 'Legs' },
+      { id: 'tue-3', name: 'Hamstring Curls',             sets: 3, reps: '12–15', category: 'Legs' },
+      { id: 'tue-4', name: 'Calf Raises',                 sets: 4, reps: '15',    category: 'Legs' },
+      { id: 'tue-5', name: 'Hanging Leg Raises',          sets: 3, reps: 'Failure', category: 'Core' },
+    ],
+  },
+  Wednesday: {
+    label: 'Upper – Back Focus',
+    exercises: [
+      { id: 'wed-1', name: 'Weighted Pull-ups',           sets: 3, reps: '10–12', category: 'Back' },
+      { id: 'wed-2', name: 'Barbell / Seated Cable Rows', sets: 3, reps: '10–12', category: 'Back' },
+      { id: 'wed-3', name: 'Chest Flyes (Cable/Machine)', sets: 3, reps: '12–15', category: 'Chest' },
+      { id: 'wed-4', name: 'Lateral Raises',              sets: 4, reps: '15–20', category: 'Shoulders' },
+      { id: 'wed-5', name: 'Face Pulls',                  sets: 3, reps: '15',    category: 'Shoulders' },
+      { id: 'wed-6', name: 'Strict Bicep Curls',          sets: 2, reps: '10–12', category: 'Arms' },
+      { id: 'wed-7', name: 'Skull Crushers',              sets: 2, reps: '10–12', category: 'Arms' },
+    ],
+  },
+  Thursday: {
+    label: 'Lower – Hamstring / Glute Focus',
+    exercises: [
+      { id: 'thu-1', name: 'Romanian Deadlifts (RDLs)',   sets: 3, reps: '10–12', category: 'Legs' },
+      { id: 'thu-2', name: 'Walking Lunges',              sets: 3, reps: '12 / leg', category: 'Legs' },
+      { id: 'thu-3', name: 'Leg Press (Feet High)',       sets: 3, reps: '12–15', category: 'Legs' },
+      { id: 'thu-4', name: 'Calf Raises',                 sets: 4, reps: '15',    category: 'Legs' },
+      { id: 'thu-5', name: 'Plank / Core Circuit',        sets: 3, reps: 'rounds', category: 'Core' },
+    ],
+  },
+  Friday: {
+    label: 'Upper – Arm & Shoulder Volume',
+    exercises: [
+      { id: 'fri-1', name: 'Dips (Chest / Tricep)',       sets: 3, reps: 'Failure', category: 'Arms' },
+      { id: 'fri-2', name: 'Lateral Raises',              sets: 5, reps: '15–20', category: 'Shoulders' },
+      { id: 'fri-3', name: 'Strict Barbell Curls',        sets: 3, reps: '8–10',  category: 'Arms' },
+      { id: 'fri-4', name: 'Skull Crushers',              sets: 3, reps: '10–12', category: 'Arms' },
+      { id: 'fri-5', name: 'Hammer Curls',                sets: 3, reps: '12',    category: 'Arms' },
+      { id: 'fri-6', name: 'Tricep Overhead Extension',   sets: 3, reps: '12–15', category: 'Arms' },
+      { id: 'fri-7', name: 'Reverse Curls',               sets: 2, reps: '15',    category: 'Arms' },
+    ],
+  },
+};
+
 export default function WorkoutLog() {
   const [entries, setEntries] = useState([]);
   const [exercise, setExercise] = useState('');
@@ -27,9 +89,27 @@ export default function WorkoutLog() {
   const [filterCat, setFilterCat] = useState('All');
   const [toast, setToast] = useState('');
 
+  // Split state
+  const todayName = DAYS[new Date().getDay()];
+  const defaultDay = SPLIT_DAYS.includes(todayName) ? todayName : 'Monday';
+  const [viewDay, setViewDay] = useState(defaultDay);
+  const [checked, setChecked] = useState({});
+
   const showToast = (msg) => {
     setToast(msg);
     setTimeout(() => setToast(''), 2200);
+  };
+
+  const toggleCheck = (id) => setChecked((prev) => ({ ...prev, [id]: !prev[id] }));
+
+  const prefillForm = (ex) => {
+    setExercise(ex.name);
+    setCategory(ex.category);
+    setSets(String(ex.sets));
+    // For rep ranges like "10–12" use the lower bound; non-numeric values (e.g. "Failure") leave reps empty
+    const firstNum = parseInt(ex.reps);
+    setReps(isNaN(firstNum) ? '' : String(firstNum));
+    document.querySelector('.wl-form')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
   };
 
   const addEntry = (e) => {
@@ -112,6 +192,78 @@ export default function WorkoutLog() {
           <span className="wl-stat-lbl">Total Volume</span>
         </div>
       </div>
+
+      {/* ── Workout Split ── */}
+      <section className="wl-card wl-split-card">
+        <div className="wl-split-header">
+          <h2 className="wl-section-title wl-split-title">
+            📅 {viewDay}'s Plan
+          </h2>
+          <span className="wl-split-label">{WORKOUT_SPLIT[viewDay].label}</span>
+        </div>
+
+        <div className="wl-day-tabs">
+          {SPLIT_DAYS.map((day) => (
+            <button
+              key={day}
+              className={`wl-day-tab${viewDay === day ? ' active' : ''}${day === todayName ? ' today' : ''}`}
+              onClick={() => setViewDay(day)}
+            >
+              {day.slice(0, 3)}
+            </button>
+          ))}
+        </div>
+
+        <ul className="wl-split-list">
+          {WORKOUT_SPLIT[viewDay].exercises.map((ex) => {
+            const colors = CATEGORY_COLORS[ex.category] || CATEGORY_COLORS.Other;
+            const done = !!checked[ex.id];
+            return (
+              <li
+                key={ex.id}
+                className={`wl-split-item${done ? ' done' : ''}`}
+                style={{ borderLeft: `3px solid ${colors.badge}` }}
+              >
+                <label className="wl-split-check">
+                  <input
+                    type="checkbox"
+                    checked={done}
+                    onChange={() => toggleCheck(ex.id)}
+                  />
+                  <span className="wl-split-name">{ex.name}</span>
+                </label>
+                <span className="wl-split-meta">
+                  {ex.sets} × {ex.reps}
+                </span>
+                <button
+                  className="wl-split-add"
+                  onClick={() => prefillForm(ex)}
+                  title="Pre-fill log form"
+                  aria-label={`Pre-fill form with ${ex.name}`}
+                >
+                  ＋
+                </button>
+              </li>
+            );
+          })}
+        </ul>
+
+        <div className="wl-split-progress">
+          {(() => {
+            const total = WORKOUT_SPLIT[viewDay].exercises.length;
+            const done = WORKOUT_SPLIT[viewDay].exercises.filter((ex) => checked[ex.id]).length;
+            return (
+              <>
+                <div
+                  className="wl-split-bar"
+                  style={{ width: `${total ? (done / total) * 100 : 0}%` }}
+                />
+                <span className="wl-split-progress-text">{done} / {total} done</span>
+              </>
+            );
+          })()}
+        </div>
+      </section>
 
       {/* ── Log Form ── */}
       <section className="wl-card">

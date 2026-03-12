@@ -309,6 +309,148 @@
   text-align: center;
 }
 
+/* ── Workout Split ── */
+.wl-split-card {
+  padding-bottom: 14px;
+}
+.wl-split-header {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.wl-split-title {
+  margin: 0 !important;
+}
+.wl-split-label {
+  font-size: 12px;
+  color: #9e95b5;
+  font-style: italic;
+}
+.wl-day-tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 14px;
+  flex-wrap: wrap;
+}
+.wl-day-tab {
+  padding: 5px 14px;
+  border-radius: 999px;
+  border: 1.5px solid #e0d8f0;
+  background: #fff;
+  color: #6a5a8a;
+  font-size: 13px;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-weight: 500;
+}
+.wl-day-tab.active {
+  background: linear-gradient(135deg, #b48ce8 0%, #7c9ef5 100%);
+  border-color: transparent;
+  color: #fff;
+  font-weight: 600;
+}
+.wl-day-tab.today:not(.active) {
+  border-color: #a78bdf;
+  color: #6040b8;
+}
+.wl-split-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.wl-split-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 9px 10px;
+  background: #faf8ff;
+  border-radius: 10px;
+  transition: opacity 0.15s, background 0.15s;
+}
+.wl-split-item.done {
+  opacity: 0.5;
+  background: #f0edf8;
+}
+.wl-split-item.done .wl-split-name {
+  text-decoration: line-through;
+  color: #9e95b5;
+}
+.wl-split-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  cursor: pointer;
+}
+.wl-split-check input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: #8c3de0;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.wl-split-name {
+  font-size: 14px;
+  color: #2e2840;
+  font-weight: 500;
+}
+.wl-split-meta {
+  font-size: 12px;
+  color: #8a7fa0;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.wl-split-add {
+  background: none;
+  border: 1.5px solid #d0c6f0;
+  color: #7c5cc4;
+  font-size: 16px;
+  line-height: 1;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  flex-shrink: 0;
+}
+.wl-split-add:hover {
+  background: #f0ebff;
+  border-color: #a78bdf;
+  color: #6040b8;
+}
+.wl-split-progress {
+  margin-top: 12px;
+  position: relative;
+  background: #eeeaf5;
+  border-radius: 999px;
+  height: 6px;
+  overflow: hidden;
+}
+.wl-split-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  background: linear-gradient(90deg, #b48ce8, #7c9ef5);
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+.wl-split-progress-text {
+  display: block;
+  text-align: right;
+  font-size: 11px;
+  color: #9e95b5;
+  margin-top: 4px;
+}
+
 /* ── Mobile ── */
 @media (max-width: 480px) {
   .wl-title {
