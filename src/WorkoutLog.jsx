@@ -218,7 +218,7 @@ export default function WorkoutLog() {
   // Removes from today's local session ONLY – does NOT delete from DB history
   const removeEntry = (id) => {
     setEntries((prev) => prev.filter((e) => e.id !== id));
-    showToast('🗑️ Removed from today\'s log');
+    showToast(`🗑️ Removed from today's log`);
   };
 
   const filtered = useMemo(

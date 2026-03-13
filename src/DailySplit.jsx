@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { DAYS_OF_WEEK, EXERCISE_LIST, CATEGORY_COLORS } from './constants';
 import DayColumn from './DayColumn';
 import { getSplits, createSplit, updateSplit, deleteSplit, activateSplit } from './api';
@@ -71,7 +71,6 @@ export default function DailySplit({ onSplitSaved }) {
   // ── UI state ──
   const [activeDay, setActiveDay] = useState(todayDayName);
   const [search, setSearch] = useState('');
-  const [isNew, setIsNew] = useState(false); // true = creating a brand-new split
 
   // Persist draft to localStorage
   useEffect(() => { storageSet('wl-weekly-split', weeklySplit); }, [weeklySplit]);
@@ -83,26 +82,31 @@ export default function DailySplit({ onSplitSaved }) {
     setTimeout(() => setStatusMsg(''), 3000);
   };
 
-  // ── Load splits from DB ──
-  const loadSplits = useCallback(() => {
-    setLoading(true);
+  // ── Load splits from DB on mount (inline to avoid stale-closure lint issues) ──
+  useEffect(() => {
+    let live = true;
     getSplits()
       .then((data) => {
+        if (!live) return;
         setSplits(data);
         const active = data.find((s) => s.is_active) || data[0];
-        if (active && !isNew) {
+        if (active) {
           setSelectedSplitId(active.id);
           setSplitName(active.name);
           setWeeklySplit(daysArrayToMap(active.days));
-        } else if (data.length === 0) {
-          setIsNew(true);
         }
+        setLoading(false);
       })
-      .catch(() => {/* DB unavailable – use local draft */})
-      .finally(() => setLoading(false));
-  }, [isNew]);
+      .catch(() => { if (live) setLoading(false); });
+    return () => { live = false; };
+  }, []);
 
-  useEffect(() => { loadSplits(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  // ── Refresh splits list (called after save/delete; keeps current selection) ──
+  const refreshSplitsList = () => {
+    getSplits()
+      .then((data) => setSplits(data))
+      .catch(() => {});
+  };
 
   // ── Switch between saved splits ──
   const handleSelectSplit = (id) => {
@@ -111,7 +115,6 @@ export default function DailySplit({ onSplitSaved }) {
     setSelectedSplitId(split.id);
     setSplitName(split.name);
     setWeeklySplit(daysArrayToMap(split.days));
-    setIsNew(false);
   };
 
   // ── Start a new (unsaved) split ──
@@ -119,7 +122,6 @@ export default function DailySplit({ onSplitSaved }) {
     setSelectedSplitId(null);
     setSplitName('My Split');
     setWeeklySplit({ ...DEFAULT_WEEKLY_SPLIT });
-    setIsNew(true);
   };
 
   // ── Save current split to DB ──
@@ -134,12 +136,11 @@ export default function DailySplit({ onSplitSaved }) {
       } else {
         saved = await createSplit({ name: splitName.trim(), days });
         setSelectedSplitId(saved.id);
-        setIsNew(false);
       }
       // Activate on save
       await activateSplit(saved.id);
       showStatus('✅ Split saved!');
-      await loadSplits();
+      refreshSplitsList();
       if (onSplitSaved) onSplitSaved();
     } catch {
       showStatus('❌ Could not save split – check server connection.');
@@ -157,9 +158,8 @@ export default function DailySplit({ onSplitSaved }) {
       setSelectedSplitId(null);
       setSplitName('My Split');
       setWeeklySplit({ ...DEFAULT_WEEKLY_SPLIT });
-      setIsNew(splits.length <= 1);
       showStatus('🗑️ Split deleted.');
-      await loadSplits();
+      refreshSplitsList();
       if (onSplitSaved) onSplitSaved();
     } catch {
       showStatus('❌ Could not delete split.');

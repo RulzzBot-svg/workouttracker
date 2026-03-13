@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 import { readFileSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, join } from 'path';
+import rateLimit from 'express-rate-limit';
 import pool from './db.js';
 
 dotenv.config();
@@ -14,6 +15,16 @@ const PORT = process.env.PORT || 3001;
 
 app.use(cors());
 app.use(express.json());
+
+// Apply rate limiting to all API routes
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 200,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many requests – please try again later.' },
+});
+app.use('/api/', apiLimiter);
 
 /* ─────────────────────────────────────────────
    Run schema migrations on startup
