@@ -1,7 +1,8 @@
 import { useState, useMemo, useEffect } from 'react';
 import './WorkoutLog.css';
-import { CATEGORY_COLORS } from './constants';
+import { CATEGORY_COLORS, DAYS_OF_WEEK } from './constants';
 import DailySplit from './DailySplit';
+import { saveHistoryEntry, getHistory, getSplits, activateSplit } from './api';
 
 const storageGet = (key, fallback) => {
   try {
@@ -87,7 +88,18 @@ const WORKOUT_SPLIT = {
 };
 
 export default function WorkoutLog() {
+  // ── today's session (local only – deleting does NOT affect DB history) ──
   const [entries, setEntries] = useState(() => storageGet('wl-entries', []));
+
+  // ── permanent history from DB ──
+  const [history, setHistory] = useState([]);
+  const [historyLoading, setHistoryLoading] = useState(true);
+
+  // ── splits from DB ──
+  const [splits, setSplits] = useState([]);
+  const [splitsLoading, setSplitsLoading] = useState(true);
+  const [activeSplitId, setActiveSplitId] = useState(null);
+
   const [exercise, setExercise] = useState('');
   const [category, setCategory] = useState('Chest');
   const [sets, setSets]   = useState('');
@@ -106,6 +118,47 @@ export default function WorkoutLog() {
 
   useEffect(() => { storageSet('wl-entries', entries); }, [entries]);
   useEffect(() => { storageSet('wl-checked', checked); }, [checked]);
+
+  // ── Load DB history on mount (no synchronous setState in effect body) ──
+  useEffect(() => {
+    let live = true;
+    getHistory()
+      .then((rows) => { if (live) { setHistory(rows); setHistoryLoading(false); } })
+      .catch(() => { if (live) setHistoryLoading(false); });
+    return () => { live = false; };
+  }, []);
+
+  // ── Load splits from DB on mount ──
+  useEffect(() => {
+    let live = true;
+    getSplits()
+      .then((data) => {
+        if (!live) return;
+        setSplits(data);
+        const active = data.find((s) => s.is_active);
+        if (active) setActiveSplitId(active.id);
+        else if (data.length > 0) setActiveSplitId(data[0].id);
+        setSplitsLoading(false);
+      })
+      .catch(() => { if (live) setSplitsLoading(false); });
+    return () => { live = false; };
+  }, []);
+
+  // ── Callable refresh functions (invoked from event handlers, not effects) ──
+  const refreshHistory = () => {
+    getHistory().then(setHistory).catch(() => {});
+  };
+
+  const refreshSplits = () => {
+    getSplits()
+      .then((data) => {
+        setSplits(data);
+        const active = data.find((s) => s.is_active);
+        if (active) setActiveSplitId(active.id);
+        else if (data.length > 0) setActiveSplitId(data[0].id);
+      })
+      .catch(() => {});
+  };
 
   const showToast = (msg) => {
     setToast(msg);
@@ -139,7 +192,21 @@ export default function WorkoutLog() {
       timestamp: Date.now(),
     };
 
+    // Add to today's local session immediately
     setEntries((prev) => [newEntry, ...prev]);
+
+    // Save permanently to DB (fire-and-forget; errors are non-blocking)
+    saveHistoryEntry({
+      exercise_name: newEntry.name,
+      category: newEntry.category,
+      sets: newEntry.sets,
+      reps: newEntry.reps,
+      weight: newEntry.weight,
+      note: newEntry.note,
+    })
+      .then(() => refreshHistory())
+      .catch(() => {/* DB unavailable – local entry still recorded */});
+
     setExercise('');
     setSets('');
     setReps('');
@@ -148,9 +215,10 @@ export default function WorkoutLog() {
     showToast(`✅ ${newEntry.name} logged!`);
   };
 
+  // Removes from today's local session ONLY – does NOT delete from DB history
   const removeEntry = (id) => {
     setEntries((prev) => prev.filter((e) => e.id !== id));
-    showToast('🗑️ Entry removed');
+    showToast(`🗑️ Removed from today's log`);
   };
 
   const filtered = useMemo(
@@ -175,20 +243,47 @@ export default function WorkoutLog() {
   const fmtDate = (ts) =>
     new Date(ts).toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
 
+  // Group DB history by date (newest-first)
   const historyByDate = useMemo(() => {
     const map = {};
-    entries.forEach((entry) => {
-      const date = fmtDate(entry.timestamp);
+    history.forEach((entry) => {
+      const date = fmtDate(entry.logged_at);
       if (!map[date]) map[date] = [];
       map[date].push(entry);
     });
-    // Sort dates newest-first: convert MM/DD/YYYY to YYYYMMDD number for comparison
     const dateKey = (d) => {
       const [m, day, y] = d.split('/');
       return Number(`${y}${m}${day}`);
     };
     return Object.entries(map).sort((a, b) => dateKey(b[0]) - dateKey(a[0]));
-  }, [entries]);
+  }, [history]);
+
+  // ── Active DB split helpers ──
+  const activeSplit = useMemo(
+    () => splits.find((s) => s.id === activeSplitId) || null,
+    [splits, activeSplitId]
+  );
+
+  const activeSplitDayData = useMemo(() => {
+    if (!activeSplit) return null;
+    return activeSplit.days.find((d) => d.day_name === viewDay) || null;
+  }, [activeSplit, viewDay]);
+
+  // Days that appear in the active split (workout days only for tabs)
+  const splitTabDays = useMemo(() => {
+    if (!activeSplit) return SPLIT_DAYS;
+    return DAYS_OF_WEEK.filter((d) =>
+      activeSplit.days.some((day) => day.day_name === d)
+    );
+  }, [activeSplit]);
+
+  // Handle switching the active split
+  const handleActivateSplit = (id) => {
+    setActiveSplitId(id);
+    activateSplit(id)
+      .then(() => refreshSplits())
+      .catch(() => {/* DB unavailable */});
+  };
 
   return (
     <div className="wl-page">
@@ -231,11 +326,29 @@ export default function WorkoutLog() {
               <h2 className="wl-section-title wl-split-title">
                 📅 {viewDay}&apos;s Plan
               </h2>
-              <span className="wl-split-label">{WORKOUT_SPLIT[viewDay].label}</span>
+              {/* If DB has splits, show the active split name + a switcher */}
+              {!splitsLoading && splits.length > 0 ? (
+                <div className="wl-split-selector">
+                  <select
+                    className="wl-select wl-split-select"
+                    value={activeSplitId ?? ''}
+                    onChange={(e) => handleActivateSplit(Number(e.target.value))}
+                    aria-label="Switch active split"
+                  >
+                    {splits.map((s) => (
+                      <option key={s.id} value={s.id}>{s.name}</option>
+                    ))}
+                  </select>
+                </div>
+              ) : (
+                <span className="wl-split-label">
+                  {WORKOUT_SPLIT[viewDay]?.label ?? ''}
+                </span>
+              )}
             </div>
 
             <div className="wl-day-tabs">
-              {SPLIT_DAYS.map((day) => (
+              {(splits.length > 0 ? splitTabDays : SPLIT_DAYS).map((day) => (
                 <button
                   key={day}
                   className={`wl-day-tab${viewDay === day ? ' active' : ''}${day === todayName ? ' today' : ''}`}
@@ -246,55 +359,131 @@ export default function WorkoutLog() {
               ))}
             </div>
 
-            <ul className="wl-split-list">
-              {WORKOUT_SPLIT[viewDay].exercises.map((ex) => {
-                const colors = CATEGORY_COLORS[ex.category] || CATEGORY_COLORS.Other;
-                const done = !!checked[ex.id];
-                return (
-                  <li
-                    key={ex.id}
-                    className={`wl-split-item${done ? ' done' : ''}`}
-                    style={{ borderLeft: `3px solid ${colors.badge}` }}
-                  >
-                    <label className="wl-split-check">
-                      <input
-                        type="checkbox"
-                        checked={done}
-                        onChange={() => toggleCheck(ex.id)}
-                      />
-                      <span className="wl-split-name">{ex.name}</span>
-                    </label>
-                    <span className="wl-split-meta">
-                      {ex.sets} × {ex.reps}
-                    </span>
-                    <button
-                      className="wl-split-add"
-                      onClick={() => prefillForm(ex)}
-                      title="Pre-fill log form"
-                      aria-label={`Pre-fill form with ${ex.name}`}
-                    >
-                      ＋
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-
-            <div className="wl-split-progress">
-              {(() => {
-                const total = WORKOUT_SPLIT[viewDay].exercises.length;
-                const done = WORKOUT_SPLIT[viewDay].exercises.filter((ex) => checked[ex.id]).length;
-                return (
-                  <>
-                    <div
-                      className="wl-split-bar"
-                      style={{ width: `${total ? (done / total) * 100 : 0}%` }}
-                    />
-                    <span className="wl-split-progress-text">{done} / {total} done</span>
-                  </>
-                );
-              })()}
-            </div>
+            {/* DB split exercises (if active split exists) */}
+            {splits.length > 0 && activeSplitDayData ? (
+              <>
+                {activeSplitDayData.day_type === 'Rest' ? (
+                  <div className="wl-empty" style={{ padding: '1rem 0' }}>
+                    <span className="wl-empty-icon">😴</span>
+                    <p>Rest Day – recover and recharge!</p>
+                  </div>
+                ) : (
+                  <ul className="wl-split-list">
+                    {(activeSplitDayData.exercises || []).map((ex) => {
+                      const colors = CATEGORY_COLORS[ex.category] || CATEGORY_COLORS.Other;
+                      const done = !!checked[ex.id];
+                      return (
+                        <li
+                          key={ex.id}
+                          className={`wl-split-item${done ? ' done' : ''}`}
+                          style={{ borderLeft: `3px solid ${colors.badge}` }}
+                        >
+                          <label className="wl-split-check">
+                            <input
+                              type="checkbox"
+                              checked={done}
+                              onChange={() => toggleCheck(ex.id)}
+                            />
+                            <span className="wl-split-name">{ex.name}</span>
+                          </label>
+                          <span
+                            className="wl-badge"
+                            style={{ background: colors.badge, marginLeft: 'auto', marginRight: '0.5rem' }}
+                          >
+                            {ex.category}
+                          </span>
+                          <button
+                            className="wl-split-add"
+                            onClick={() => prefillForm(ex)}
+                            title="Pre-fill log form"
+                            aria-label={`Pre-fill form with ${ex.name}`}
+                          >
+                            ＋
+                          </button>
+                        </li>
+                      );
+                    })}
+                    {activeSplitDayData.exercises.length === 0 && (
+                      <li className="wl-empty" style={{ listStyle: 'none' }}>
+                        <p>No exercises planned for {viewDay}. Go to Plan tab to add some!</p>
+                      </li>
+                    )}
+                  </ul>
+                )}
+                <div className="wl-split-progress">
+                  {(() => {
+                    const exes = activeSplitDayData.exercises || [];
+                    const total = exes.length;
+                    const done = exes.filter((ex) => checked[ex.id]).length;
+                    return (
+                      <>
+                        <div
+                          className="wl-split-bar"
+                          style={{ width: `${total ? (done / total) * 100 : 0}%` }}
+                        />
+                        <span className="wl-split-progress-text">{done} / {total} done</span>
+                      </>
+                    );
+                  })()}
+                </div>
+              </>
+            ) : splits.length > 0 && !activeSplitDayData ? (
+              <div className="wl-empty" style={{ padding: '1rem 0' }}>
+                <p>No plan for {viewDay} in this split. Go to Plan tab to set it up!</p>
+              </div>
+            ) : (
+              /* Fallback: hardcoded WORKOUT_SPLIT */
+              <>
+                <ul className="wl-split-list">
+                  {WORKOUT_SPLIT[viewDay].exercises.map((ex) => {
+                    const colors = CATEGORY_COLORS[ex.category] || CATEGORY_COLORS.Other;
+                    const done = !!checked[ex.id];
+                    return (
+                      <li
+                        key={ex.id}
+                        className={`wl-split-item${done ? ' done' : ''}`}
+                        style={{ borderLeft: `3px solid ${colors.badge}` }}
+                      >
+                        <label className="wl-split-check">
+                          <input
+                            type="checkbox"
+                            checked={done}
+                            onChange={() => toggleCheck(ex.id)}
+                          />
+                          <span className="wl-split-name">{ex.name}</span>
+                        </label>
+                        <span className="wl-split-meta">
+                          {ex.sets} × {ex.reps}
+                        </span>
+                        <button
+                          className="wl-split-add"
+                          onClick={() => prefillForm(ex)}
+                          title="Pre-fill log form"
+                          aria-label={`Pre-fill form with ${ex.name}`}
+                        >
+                          ＋
+                        </button>
+                      </li>
+                    );
+                  })}
+                </ul>
+                <div className="wl-split-progress">
+                  {(() => {
+                    const total = WORKOUT_SPLIT[viewDay].exercises.length;
+                    const done = WORKOUT_SPLIT[viewDay].exercises.filter((ex) => checked[ex.id]).length;
+                    return (
+                      <>
+                        <div
+                          className="wl-split-bar"
+                          style={{ width: `${total ? (done / total) * 100 : 0}%` }}
+                        />
+                        <span className="wl-split-progress-text">{done} / {total} done</span>
+                      </>
+                    );
+                  })()}
+                </div>
+              </>
+            )}
           </section>
 
           {/* ── Log Form ── */}
@@ -451,7 +640,12 @@ export default function WorkoutLog() {
       {activeTab === 'history' && (
         <section className="wl-card wl-history-card">
           <h2 className="wl-section-title">🗓️ Exercise History</h2>
-          {historyByDate.length === 0 ? (
+          {historyLoading ? (
+            <div className="wl-empty">
+              <span className="wl-empty-icon">⏳</span>
+              <p>Loading history…</p>
+            </div>
+          ) : historyByDate.length === 0 ? (
             <div className="wl-empty">
               <span className="wl-empty-icon">📭</span>
               <p>No history yet. Log some exercises to get started!</p>
@@ -471,7 +665,7 @@ export default function WorkoutLog() {
                       >
                         <div className="wl-entry-main">
                           <div className="wl-entry-top">
-                            <strong className="wl-entry-name">{item.name}</strong>
+                            <strong className="wl-entry-name">{item.exercise_name}</strong>
                             <span className="wl-badge" style={{ background: colors.badge }}>
                               {item.category}
                             </span>
@@ -496,7 +690,7 @@ export default function WorkoutLog() {
         </section>
       )}
 
-      {activeTab === 'split' && <DailySplit />}
+      {activeTab === 'split' && <DailySplit onSplitSaved={refreshSplits} />}
 
       {/* ── Footer ── */}
       <footer className="wl-footer">
