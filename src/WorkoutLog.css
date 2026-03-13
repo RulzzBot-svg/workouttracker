@@ -472,3 +472,76 @@
     padding: 12px 8px;
   }
 }
+
+/* ── Bottom Nav ── */
+.wl-bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 60px;
+  background: #fff;
+  border-top: 1.5px solid #eeeaf5;
+  display: flex;
+  align-items: stretch;
+  box-shadow: 0 -2px 12px rgba(100,80,160,0.08);
+  z-index: 100;
+}
+.wl-nav-btn {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: #9e95b5;
+  transition: color 0.15s, background 0.15s;
+  padding: 0;
+}
+.wl-nav-btn.active {
+  color: #6050b0;
+}
+.wl-nav-btn:hover:not(.active) {
+  background: #faf8ff;
+  color: #7060c0;
+}
+.wl-nav-icon {
+  font-size: 20px;
+  line-height: 1;
+}
+.wl-nav-label {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+}
+
+/* Add bottom padding to the page so content is not hidden behind the nav */
+.wl-page {
+  padding-bottom: 76px;
+}
+
+/* ── History View ── */
+.wl-history-card {
+  padding-bottom: 8px;
+}
+.wl-history-group {
+  margin-bottom: 20px;
+}
+.wl-history-group:last-child {
+  margin-bottom: 0;
+}
+.wl-history-date {
+  font-size: 13px;
+  font-weight: 700;
+  color: #6050b0;
+  background: #f0ebff;
+  border-radius: 8px;
+  padding: 5px 12px;
+  margin-bottom: 8px;
+  display: inline-block;
+  letter-spacing: 0.2px;
+}
