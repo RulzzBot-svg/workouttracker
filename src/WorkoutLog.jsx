@@ -1,5 +1,7 @@
 import { useState, useMemo, useEffect } from 'react';
 import './WorkoutLog.css';
+import { CATEGORY_COLORS } from './constants';
+import DailySplit from './DailySplit';
 
 const storageGet = (key, fallback) => {
   try {
@@ -19,17 +21,6 @@ const storageSet = (key, value) => {
 };
 
 const CATEGORIES = ['Chest', 'Back', 'Legs', 'Shoulders', 'Arms', 'Core', 'Cardio', 'Other'];
-
-const CATEGORY_COLORS = {
-  Chest:     { bg: '#fde8e8', border: '#f9b8b8', badge: '#e05a5a' },
-  Back:      { bg: '#e8f0fd', border: '#b8cef9', badge: '#4a7ce0' },
-  Legs:      { bg: '#e8fde8', border: '#b8f9b8', badge: '#3daa3d' },
-  Shoulders: { bg: '#fdf4e8', border: '#f9ddb8', badge: '#d97a2e' },
-  Arms:      { bg: '#f4e8fd', border: '#d8b8f9', badge: '#8c3de0' },
-  Core:      { bg: '#e8fdf4', border: '#b8f9d8', badge: '#2eb88a' },
-  Cardio:    { bg: '#fef9e8', border: '#f9edb8', badge: '#c9a520' },
-  Other:     { bg: '#f3f3f3', border: '#d4d4d4', badge: '#777777' },
-};
 
 const today = () => new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
 
@@ -505,6 +496,8 @@ export default function WorkoutLog() {
         </section>
       )}
 
+      {activeTab === 'split' && <DailySplit />}
+
       {/* ── Footer ── */}
       <footer className="wl-footer">
         <p>Target: 165 lbs · Goal: Progressive Overload 🎯</p>
@@ -518,6 +511,13 @@ export default function WorkoutLog() {
         >
           <span className="wl-nav-icon">📋</span>
           <span className="wl-nav-label">Log</span>
+        </button>
+        <button
+          className={`wl-nav-btn${activeTab === 'split' ? ' active' : ''}`}
+          onClick={() => setActiveTab('split')}
+        >
+          <span className="wl-nav-icon">📅</span>
+          <span className="wl-nav-label">Plan</span>
         </button>
         <button
           className={`wl-nav-btn${activeTab === 'history' ? ' active' : ''}`}
