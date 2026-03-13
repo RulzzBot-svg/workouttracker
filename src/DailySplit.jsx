@@ -1,6 +1,7 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { DAYS_OF_WEEK, EXERCISE_LIST, CATEGORY_COLORS } from './constants';
 import DayColumn from './DayColumn';
+import { getSplits, createSplit, updateSplit, deleteSplit, activateSplit } from './api';
 import './DailySplit.css';
 
 const storageGet = (key, fallback) => {
@@ -33,17 +34,139 @@ const DEFAULT_WEEKLY_SPLIT = {
 // Returns today's name matching DAYS_OF_WEEK (Monday-first order)
 const todayDayName = () => DAYS_OF_WEEK[(new Date().getDay() + 6) % 7];
 
-export default function DailySplit() {
+// Convert DB split days array → weeklySplit map { Monday: { type, exercises }, ... }
+const daysArrayToMap = (days) => {
+  const map = { ...DEFAULT_WEEKLY_SPLIT };
+  days.forEach((d) => {
+    map[d.day_name] = {
+      type: d.day_type,
+      exercises: Array.isArray(d.exercises) ? d.exercises : [],
+    };
+  });
+  return map;
+};
+
+// Convert weeklySplit map → array for API
+const mapToDaysArray = (map) =>
+  DAYS_OF_WEEK.map((day) => ({
+    day_name: day,
+    day_type: map[day]?.type ?? 'Workout',
+    exercises: map[day]?.exercises ?? [],
+  }));
+
+export default function DailySplit({ onSplitSaved }) {
+  // ── DB splits ──
+  const [splits, setSplits] = useState([]);
+  const [selectedSplitId, setSelectedSplitId] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [statusMsg, setStatusMsg] = useState('');
+
+  // ── Local draft split being edited ──
   const [weeklySplit, setWeeklySplit] = useState(
     () => storageGet('wl-weekly-split', DEFAULT_WEEKLY_SPLIT)
   );
+  const [splitName, setSplitName] = useState('My Split');
+
+  // ── UI state ──
   const [activeDay, setActiveDay] = useState(todayDayName);
   const [search, setSearch] = useState('');
+  const [isNew, setIsNew] = useState(false); // true = creating a brand-new split
 
+  // Persist draft to localStorage
   useEffect(() => { storageSet('wl-weekly-split', weeklySplit); }, [weeklySplit]);
 
   const todayName = todayDayName();
 
+  const showStatus = (msg) => {
+    setStatusMsg(msg);
+    setTimeout(() => setStatusMsg(''), 3000);
+  };
+
+  // ── Load splits from DB ──
+  const loadSplits = useCallback(() => {
+    setLoading(true);
+    getSplits()
+      .then((data) => {
+        setSplits(data);
+        const active = data.find((s) => s.is_active) || data[0];
+        if (active && !isNew) {
+          setSelectedSplitId(active.id);
+          setSplitName(active.name);
+          setWeeklySplit(daysArrayToMap(active.days));
+        } else if (data.length === 0) {
+          setIsNew(true);
+        }
+      })
+      .catch(() => {/* DB unavailable – use local draft */})
+      .finally(() => setLoading(false));
+  }, [isNew]);
+
+  useEffect(() => { loadSplits(); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // ── Switch between saved splits ──
+  const handleSelectSplit = (id) => {
+    const split = splits.find((s) => s.id === Number(id));
+    if (!split) return;
+    setSelectedSplitId(split.id);
+    setSplitName(split.name);
+    setWeeklySplit(daysArrayToMap(split.days));
+    setIsNew(false);
+  };
+
+  // ── Start a new (unsaved) split ──
+  const handleNewSplit = () => {
+    setSelectedSplitId(null);
+    setSplitName('My Split');
+    setWeeklySplit({ ...DEFAULT_WEEKLY_SPLIT });
+    setIsNew(true);
+  };
+
+  // ── Save current split to DB ──
+  const handleSave = async () => {
+    if (!splitName.trim()) { showStatus('⚠️ Please give your split a name.'); return; }
+    setSaving(true);
+    try {
+      const days = mapToDaysArray(weeklySplit);
+      let saved;
+      if (selectedSplitId) {
+        saved = await updateSplit(selectedSplitId, { name: splitName.trim(), days });
+      } else {
+        saved = await createSplit({ name: splitName.trim(), days });
+        setSelectedSplitId(saved.id);
+        setIsNew(false);
+      }
+      // Activate on save
+      await activateSplit(saved.id);
+      showStatus('✅ Split saved!');
+      await loadSplits();
+      if (onSplitSaved) onSplitSaved();
+    } catch {
+      showStatus('❌ Could not save split – check server connection.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  // ── Delete the current split ──
+  const handleDelete = async () => {
+    if (!selectedSplitId) return;
+    if (!window.confirm('Delete this split?')) return;
+    try {
+      await deleteSplit(selectedSplitId);
+      setSelectedSplitId(null);
+      setSplitName('My Split');
+      setWeeklySplit({ ...DEFAULT_WEEKLY_SPLIT });
+      setIsNew(splits.length <= 1);
+      showStatus('🗑️ Split deleted.');
+      await loadSplits();
+      if (onSplitSaved) onSplitSaved();
+    } catch {
+      showStatus('❌ Could not delete split.');
+    }
+  };
+
+  // ── Local split editing ──
   const toggleDayType = (day) => {
     setWeeklySplit((prev) => ({
       ...prev,
@@ -88,6 +211,55 @@ export default function DailySplit() {
 
   return (
     <div className="ds-container">
+      {/* ── Split Selector + Controls ── */}
+      <div className="ds-split-controls wl-card">
+        <div className="ds-split-top">
+          <div className="ds-split-name-row">
+            <input
+              className="wl-input ds-split-name-input"
+              placeholder="Split name (e.g. PPL, Bro Split…)"
+              value={splitName}
+              onChange={(e) => setSplitName(e.target.value)}
+              aria-label="Split name"
+            />
+          </div>
+          <div className="ds-split-btn-row">
+            {splits.length > 0 && (
+              <select
+                className="wl-select ds-split-picker"
+                value={selectedSplitId ?? ''}
+                onChange={(e) => handleSelectSplit(e.target.value)}
+                aria-label="Switch saved split"
+              >
+                <option value="" disabled>Switch split…</option>
+                {splits.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name}{s.is_active ? ' ★' : ''}
+                  </option>
+                ))}
+              </select>
+            )}
+            <button className="wl-btn-secondary ds-new-btn" onClick={handleNewSplit}>
+              ＋ New
+            </button>
+            <button
+              className="wl-btn-primary ds-save-btn"
+              onClick={handleSave}
+              disabled={saving}
+            >
+              {saving ? 'Saving…' : '💾 Save Split'}
+            </button>
+            {selectedSplitId && (
+              <button className="wl-btn-danger ds-delete-btn" onClick={handleDelete}>
+                🗑️
+              </button>
+            )}
+          </div>
+        </div>
+        {statusMsg && <p className="ds-status-msg">{statusMsg}</p>}
+        {loading && <p className="ds-status-msg">Loading splits…</p>}
+      </div>
+
       {/* ── Day Tabs ── */}
       <div className="ds-day-tabs">
         {DAYS_OF_WEEK.map((day) => (
