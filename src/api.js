@@ -46,6 +46,14 @@ export const saveHistoryEntry = (entry) =>
     body: JSON.stringify(entry),
   }).then(handleResponse);
 
+/* ── Exercise Catalog ── */
+export const getExercises = (category) => {
+  const url = category
+    ? `${BASE}/exercises?category=${encodeURIComponent(category)}`
+    : `${BASE}/exercises`;
+  return fetch(url, { headers: authHeaders() }).then(handleResponse);
+};
+
 /* ── Workout Splits ── */
 export const getSplits = () =>
   fetch(`${BASE}/splits`, { headers: authHeaders() }).then(handleResponse);
