@@ -87,7 +87,7 @@ const WORKOUT_SPLIT = {
   },
 };
 
-export default function WorkoutLog() {
+export default function WorkoutLog({ user, onLogout }) {
   // ── today's session (local only – deleting does NOT affect DB history) ──
   const [entries, setEntries] = useState(() => storageGet('wl-entries', []));
 
@@ -296,6 +296,12 @@ export default function WorkoutLog() {
           <h1 className="wl-title">Gains Inventory</h1>
           <p className="wl-subtitle">{today()}</p>
         </div>
+        {user && onLogout && (
+          <div className="wl-header-user">
+            <span className="wl-header-username">{user.username}</span>
+            <button className="wl-logout-btn" onClick={onLogout}>Log out</button>
+          </div>
+        )}
       </header>
 
       {activeTab === 'log' && (

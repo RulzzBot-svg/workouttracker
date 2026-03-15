@@ -1,6 +1,16 @@
+-- Users
+CREATE TABLE IF NOT EXISTS users (
+  id            BIGSERIAL PRIMARY KEY,
+  username      VARCHAR(100) NOT NULL UNIQUE,
+  email         VARCHAR(255) NOT NULL UNIQUE,
+  password_hash VARCHAR(255) NOT NULL,
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 -- Workout History (permanent; never deleted when user removes from today's log)
 CREATE TABLE IF NOT EXISTS workout_history (
   id          BIGSERIAL PRIMARY KEY,
+  user_id     BIGINT REFERENCES users(id) ON DELETE CASCADE,
   exercise_name VARCHAR(255) NOT NULL,
   category    VARCHAR(100) NOT NULL DEFAULT 'Other',
   sets        INTEGER NOT NULL,
@@ -13,6 +23,7 @@ CREATE TABLE IF NOT EXISTS workout_history (
 -- Workout Splits (each row is a named split plan)
 CREATE TABLE IF NOT EXISTS workout_splits (
   id          SERIAL PRIMARY KEY,
+  user_id     BIGINT REFERENCES users(id) ON DELETE CASCADE,
   name        VARCHAR(255) NOT NULL DEFAULT 'My Split',
   is_active   BOOLEAN NOT NULL DEFAULT FALSE,
   created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
