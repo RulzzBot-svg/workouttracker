@@ -9,7 +9,9 @@
     "dev:full": "concurrently \"npm run server\" \"npm run dev\"",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "db:migrate": "node server/seed.js --schema-only",
+    "db:seed": "node server/seed.js"
   },
   "dependencies": {
     "concurrently": "^9.2.1",

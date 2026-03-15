@@ -77,8 +77,27 @@ app.post('/api/history', async (req, res) => {
 });
 
 /* ─────────────────────────────────────────────
-   Workout Splits
+   Exercise Catalog
 ───────────────────────────────────────────── */
+
+// GET /api/exercises  – full exercise catalog, optionally filtered by category
+app.get('/api/exercises', async (req, res) => {
+  const { category } = req.query;
+  try {
+    const { rows } = category
+      ? await pool.query(
+          'SELECT id, name, category FROM exercises WHERE category = $1 ORDER BY name',
+          [category]
+        )
+      : await pool.query('SELECT id, name, category FROM exercises ORDER BY category, name');
+    res.json(rows);
+  } catch (err) {
+    console.error('GET /api/exercises', err);
+    res.status(500).json({ error: 'Failed to fetch exercises' });
+  }
+});
+
+
 
 // GET /api/splits  – list all splits with their days
 app.get('/api/splits', async (_req, res) => {

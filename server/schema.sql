@@ -7,6 +7,14 @@ CREATE TABLE IF NOT EXISTS users (
   created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+-- Exercise catalog (canonical list of all exercises)
+CREATE TABLE IF NOT EXISTS exercises (
+  id          SERIAL PRIMARY KEY,
+  name        VARCHAR(255) NOT NULL UNIQUE,
+  category    VARCHAR(100) NOT NULL DEFAULT 'Other',
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 -- Workout History (permanent; never deleted when user removes from today's log)
 CREATE TABLE IF NOT EXISTS workout_history (
   id          BIGSERIAL PRIMARY KEY,

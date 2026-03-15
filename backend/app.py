@@ -183,9 +183,30 @@ def me():
     return jsonify(dict(user))
 
 
+
 # ─────────────────────────────────────────────
-# Workout History
+# Exercise Catalog
 # ─────────────────────────────────────────────
+
+@app.get("/api/exercises")
+@with_db
+def get_exercises():
+    category = request.args.get("category", "").strip()
+    with g.conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+        if category:
+            cur.execute(
+                "SELECT id, name, category FROM exercises WHERE category = %s ORDER BY name",
+                (category,),
+            )
+        else:
+            cur.execute(
+                "SELECT id, name, category FROM exercises ORDER BY category, name"
+            )
+        rows = cur.fetchall()
+    return jsonify([dict(r) for r in rows])
+
+
+
 
 @app.get("/api/history")
 @require_auth
@@ -387,7 +408,10 @@ def activate_split(split_id):
 # Boot
 # ─────────────────────────────────────────────
 
+# Run schema migrations on every startup (idempotent).
+# This covers both `python app.py` and gunicorn launches.
+run_schema()
+
 if __name__ == "__main__":
-    run_schema()
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=os.environ.get("FLASK_DEBUG", "0") == "1")
