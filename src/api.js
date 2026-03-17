@@ -60,6 +60,9 @@ export const getExercises = (category) => {
 export const getSplits = () =>
   fetch(`${BASE}/splits`, { headers: authHeaders() }).then(handleResponse);
 
+//3333232322
+
+
 export const createSplit = (payload) =>
   fetch(`${BASE}/splits`, {
     method: 'POST',
