@@ -1,4 +1,6 @@
-const BASE = '/api';
+import { API_BASE } from './apiBase';
+
+const BASE = API_BASE;
 
 const getToken = () => localStorage.getItem('wt_token');
 

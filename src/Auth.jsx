@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import './Auth.css';
+import { API_BASE } from './apiBase';
 
 export default function Auth({ onLogin }) {
   const [mode, setMode] = useState('login'); // 'login' | 'register'
@@ -22,7 +23,7 @@ export default function Auth({ onLogin }) {
 
     setLoading(true);
     try {
-      const endpoint = mode === 'login' ? '/api/auth/login' : '/api/auth/register';
+      const endpoint = mode === 'login' ? `${API_BASE}/auth/login` : `${API_BASE}/auth/register`;
       const body =
         mode === 'login'
           ? { email: form.email || form.username, password: form.password }
