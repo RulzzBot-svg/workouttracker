@@ -10,25 +10,25 @@ Requires DATABASE_URL in the environment (or a .env file at the project root).
 
 import os
 import sys
+import argparse
+from pathlib import Path
 import psycopg2
 from dotenv import load_dotenv
 
-load_dotenv()
+HERE = Path(__file__).resolve().parent
+REPO_ROOT = HERE.parent
 
-DATABASE_URL = os.environ.get("DATABASE_URL")
-if not DATABASE_URL:
-    print("❌  DATABASE_URL environment variable is not set.")
-    sys.exit(1)
+# Load .env from predictable locations so the script works from any cwd.
+load_dotenv(REPO_ROOT / ".env")
+load_dotenv(HERE / ".env")
 
-SCHEMA_PATH = os.path.join(os.path.dirname(__file__), "..", "server", "schema.sql")
-SEED_PATH   = os.path.join(os.path.dirname(__file__), "..", "server", "seed.sql")
-
-schema_only = "--schema-only" in sys.argv
+SCHEMA_PATH = REPO_ROOT / "server" / "schema.sql"
+SEED_PATH = REPO_ROOT / "server" / "seed.sql"
 
 
 def run_file(label: str, path: str, conn) -> None:
     print(f"Running {label}…")
-    with open(path) as f:
+    with open(path, encoding="utf-8") as f:
         sql = f.read()
     with conn.cursor() as cur:
         cur.execute(sql)
@@ -37,10 +37,31 @@ def run_file(label: str, path: str, conn) -> None:
 
 
 def main() -> None:
-    conn = psycopg2.connect(DATABASE_URL)
+    parser = argparse.ArgumentParser(description="Run schema migrations and optional seed data.")
+    parser.add_argument("--schema-only", action="store_true", help="Run schema only, skip seed data")
+    parser.add_argument(
+        "--database-url",
+        dest="database_url",
+        default=None,
+        help="Optional PostgreSQL URL override (defaults to DATABASE_URL env var)",
+    )
+    args = parser.parse_args()
+
+    database_url = args.database_url or os.environ.get("DATABASE_URL")
+    if not database_url:
+        print("❌  DATABASE_URL environment variable is not set.")
+        print(f"Checked for .env at: {REPO_ROOT / '.env'} and {HERE / '.env'}")
+        sys.exit(1)
+
+    if "@host/" in database_url or "user:password@" in database_url:
+        print("❌  DATABASE_URL still contains the template value.")
+        print("Set DATABASE_URL in .env to your Neon connection string, then rerun seed.py.")
+        sys.exit(1)
+
+    conn = psycopg2.connect(database_url)
     try:
         run_file("schema migrations", SCHEMA_PATH, conn)
-        if not schema_only:
+        if not args.schema_only:
             run_file("seed data", SEED_PATH, conn)
         print("\n🎉  Database is ready.")
     except Exception as exc:

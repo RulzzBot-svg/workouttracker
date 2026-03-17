@@ -33,7 +33,14 @@ export default function Auth({ onLogin }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       });
-      const data = await res.json();
+
+      let data = null;
+      const raw = await res.text();
+      try {
+        data = raw ? JSON.parse(raw) : {};
+      } catch {
+        data = { error: raw || `HTTP ${res.status}` };
+      }
 
       if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
 
