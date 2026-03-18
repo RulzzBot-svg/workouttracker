@@ -1,0 +1,270 @@
+.fr-page {
+  min-height: 100dvh;
+  background: var(--bg, #f5f5f5);
+  padding-bottom: 5rem;
+}
+
+.fr-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem 1.25rem 0.5rem;
+}
+
+.fr-back-btn {
+  background: none;
+  border: none;
+  color: var(--accent, #3b82f6);
+  font-size: 1rem;
+  cursor: pointer;
+  padding: 0.25rem 0;
+}
+
+.fr-title {
+  font-size: 1.3rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.fr-toast {
+  margin: 0.5rem 1rem;
+  padding: 0.6rem 1rem;
+  background: #1a202c;
+  color: #fff;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  text-align: center;
+}
+
+.fr-tabs {
+  display: flex;
+  gap: 0.25rem;
+  padding: 0.5rem 1rem 0;
+  border-bottom: 2px solid #e5e7eb;
+  margin-bottom: 0.75rem;
+}
+
+.fr-tab {
+  background: none;
+  border: none;
+  padding: 0.6rem 1rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  color: #6b7280;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -2px;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.fr-tab.active {
+  color: var(--accent, #3b82f6);
+  border-bottom-color: var(--accent, #3b82f6);
+  font-weight: 600;
+}
+
+.fr-online-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  background: #22c55e;
+  border-radius: 50%;
+}
+
+.fr-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 18px;
+  height: 18px;
+  background: #ef4444;
+  color: #fff;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  padding: 0 4px;
+}
+
+.fr-section {
+  padding: 0 1rem;
+}
+
+.fr-subsection-title {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0.75rem 0 0.4rem;
+}
+
+.fr-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.fr-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #fff;
+  border-radius: 10px;
+  padding: 0.75rem 1rem;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.07);
+}
+
+.fr-item-left {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.fr-avatar-wrap {
+  position: relative;
+}
+
+.fr-avatar {
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.fr-avatar-placeholder {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.95rem;
+}
+
+.fr-status-dot {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  width: 11px;
+  height: 11px;
+  border-radius: 50%;
+  background: #9ca3af;
+  border: 2px solid #fff;
+}
+
+.fr-status-dot.online {
+  background: #22c55e;
+}
+
+.fr-item-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.fr-item-name {
+  font-weight: 600;
+  font-size: 0.95rem;
+}
+
+.fr-item-status {
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+.fr-remove-btn {
+  background: none;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  color: #9ca3af;
+  width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 0.8rem;
+}
+
+.fr-remove-btn:hover {
+  border-color: #ef4444;
+  color: #ef4444;
+}
+
+.fr-request-btns {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.fr-accept-btn {
+  background: #22c55e;
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 0.35rem 0.8rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.fr-decline-btn {
+  background: #f3f4f6;
+  color: #374151;
+  border: none;
+  border-radius: 6px;
+  padding: 0.35rem 0.8rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.fr-add-btn {
+  background: var(--accent, #3b82f6);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 0.35rem 0.85rem;
+  font-size: 0.85rem;
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.fr-pending-label {
+  font-size: 0.8rem;
+  color: #9ca3af;
+  font-style: italic;
+}
+
+.fr-empty {
+  text-align: center;
+  color: #9ca3af;
+  padding: 1.5rem 0;
+  font-size: 0.9rem;
+}
+
+.fr-empty-state {
+  text-align: center;
+  padding: 2rem 0;
+}
+
+.fr-empty-icon {
+  font-size: 2.5rem;
+}
+
+.fr-empty-state p {
+  color: #6b7280;
+  margin-top: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.fr-search-wrap {
+  margin-bottom: 1rem;
+}
+
+.fr-search-input {
+  width: 100%;
+}

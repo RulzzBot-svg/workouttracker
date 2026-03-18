@@ -39,6 +39,8 @@ export const EXERCISE_LIST = [
   { name: 'Dumbbell Bench Press',         category: 'Chest' },
   { name: 'Landmine Press',               category: 'Chest' },
   { name: 'Svend Press',                  category: 'Chest' },
+  { name: 'Chest Press Machine',          category: 'Chest' },
+  { name: 'Cable Chest Press',            category: 'Chest' },
 
   // ── Back ──
   { name: 'Pull-ups',                     category: 'Back' },
@@ -61,6 +63,9 @@ export const EXERCISE_LIST = [
   { name: 'Straight-Arm Pulldowns',       category: 'Back' },
   { name: 'Single-Arm Lat Pulldown',      category: 'Back' },
   { name: 'Inverted Rows',                category: 'Back' },
+  { name: 'Meadows Row',                  category: 'Back' },
+  { name: 'Kroc Row',                     category: 'Back' },
+  { name: 'Rack Pull',                    category: 'Back' },
 
   // ── Legs ──
   { name: 'Back Squats',                  category: 'Legs' },
@@ -85,6 +90,10 @@ export const EXERCISE_LIST = [
   { name: 'Sissy Squats',                 category: 'Legs' },
   { name: 'Nordic Curls',                 category: 'Legs' },
   { name: 'Sumo Squats',                  category: 'Legs' },
+  { name: 'Leg Press (Wide Stance)',      category: 'Legs' },
+  { name: 'Pause Squats',                 category: 'Legs' },
+  { name: 'Heel Elevated Squats',         category: 'Legs' },
+  { name: 'Reverse Hypers',               category: 'Legs' },
 
   // ── Shoulders ──
   { name: 'Overhead Press',               category: 'Shoulders' },
@@ -103,6 +112,8 @@ export const EXERCISE_LIST = [
   { name: 'Plate Front Raises',           category: 'Shoulders' },
   { name: 'Behind-the-Neck Press',        category: 'Shoulders' },
   { name: 'Pike Push-ups',                category: 'Shoulders' },
+  { name: 'Cable Face Pulls',             category: 'Shoulders' },
+  { name: 'Bent-Over Rear Delt Raises',   category: 'Shoulders' },
 
   // ── Arms ──
   { name: 'Barbell Curls',                category: 'Arms' },
@@ -125,6 +136,9 @@ export const EXERCISE_LIST = [
   { name: 'Rope Pushdowns',               category: 'Arms' },
   { name: 'EZ-Bar Curls',                 category: 'Arms' },
   { name: 'Wrist Curls',                  category: 'Arms' },
+  { name: 'Drag Curls',                   category: 'Arms' },
+  { name: 'Cross-Body Hammer Curls',      category: 'Arms' },
+  { name: 'JM Press',                     category: 'Arms' },
 
   // ── Core ──
   { name: 'Plank',                        category: 'Core' },
@@ -145,6 +159,9 @@ export const EXERCISE_LIST = [
   { name: 'Pallof Press',                 category: 'Core' },
   { name: 'Woodchoppers',                 category: 'Core' },
   { name: 'Dragon Flags',                 category: 'Core' },
+  { name: 'Hanging Knee Raises',          category: 'Core' },
+  { name: 'Decline Crunches',             category: 'Core' },
+  { name: 'Stability Ball Rollout',       category: 'Core' },
 
   // ── Cardio ──
   { name: 'Running',                      category: 'Cardio' },
@@ -163,6 +180,9 @@ export const EXERCISE_LIST = [
   { name: 'Sled Push',                    category: 'Cardio' },
   { name: 'Swimming',                     category: 'Cardio' },
   { name: 'Jump Squats',                  category: 'Cardio' },
+  { name: 'Assault Bike',                 category: 'Cardio' },
+  { name: 'Ski Erg',                      category: 'Cardio' },
+  { name: 'Hill Sprints',                 category: 'Cardio' },
 
   // ── Other ──
   { name: 'Battle Ropes',                 category: 'Other' },
@@ -179,4 +199,6 @@ export const EXERCISE_LIST = [
   { name: 'TRX Push-up',                  category: 'Other' },
   { name: 'Rope Climb',                   category: 'Other' },
   { name: 'Sled Pull',                    category: 'Other' },
+  { name: 'Atlas Stone Carry',            category: 'Other' },
+  { name: 'Prowler Push',                 category: 'Other' },
 ];

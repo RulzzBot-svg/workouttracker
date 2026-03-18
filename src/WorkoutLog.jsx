@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from 'react';
 import './WorkoutLog.css';
 import { CATEGORY_COLORS, DAYS_OF_WEEK } from './constants';
 import DailySplit from './DailySplit';
-import { saveHistoryEntry, getHistory, getSplits, activateSplit } from './api';
+import { saveHistoryEntry, getHistory, getSplits, activateSplit, getStreak } from './api';
 
 const storageGet = (key, fallback) => {
   try {
@@ -87,7 +87,7 @@ const WORKOUT_SPLIT = {
   },
 };
 
-export default function WorkoutLog({ user, onLogout }) {
+export default function WorkoutLog({ user, onLogout, onProfile, onFriends }) {
   // ── today's session (local only – deleting does NOT affect DB history) ──
   const [entries, setEntries] = useState(() => storageGet('wl-entries', []));
 
@@ -109,6 +109,7 @@ export default function WorkoutLog({ user, onLogout }) {
   const [filterCat, setFilterCat] = useState('All');
   const [toast, setToast] = useState('');
   const [activeTab, setActiveTab] = useState('log');
+  const [streak, setStreak] = useState(null);
 
   // Split state
   const todayName = DAYS[new Date().getDay()];
@@ -144,9 +145,18 @@ export default function WorkoutLog({ user, onLogout }) {
     return () => { live = false; };
   }, []);
 
+  useEffect(() => {
+    let live = true;
+    getStreak()
+      .then((data) => { if (live) setStreak(data); })
+      .catch(() => {});
+    return () => { live = false; };
+  }, []);
+
   // ── Callable refresh functions (invoked from event handlers, not effects) ──
   const refreshHistory = () => {
     getHistory().then(setHistory).catch(() => {});
+    getStreak().then(setStreak).catch(() => {});
   };
 
   const refreshSplits = () => {
@@ -296,9 +306,15 @@ export default function WorkoutLog({ user, onLogout }) {
           <h1 className="wl-title">Gains Inventory</h1>
           <p className="wl-subtitle">{today()}</p>
         </div>
-        {user && onLogout && (
+        {user && (
           <div className="wl-header-user">
-            <span className="wl-header-username">{user.username}</span>
+            {streak && streak.current_streak > 0 && (
+              <span className="wl-streak-badge" title={`Longest: ${streak.longest_streak} days`}>
+                🔥 {streak.current_streak}
+              </span>
+            )}
+            <button className="wl-icon-btn" onClick={onProfile} title="Profile">👤</button>
+            <button className="wl-icon-btn" onClick={onFriends} title="Friends">👥</button>
             <button className="wl-logout-btn" onClick={onLogout}>Log out</button>
           </div>
         )}
