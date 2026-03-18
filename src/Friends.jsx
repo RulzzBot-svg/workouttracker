@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import {
   getFriends, getFriendRequests, searchUsers,
   sendFriendRequest, acceptFriendRequest,
@@ -33,24 +33,34 @@ export default function Friends({ onBack }) {
 
   const showMsg = (m) => { setMsg(m); setTimeout(() => setMsg(''), 3000); };
 
-  const refresh = useCallback(() => {
-    setLoading(true);
+  const refresh = () => {
     Promise.all([getFriends(), getFriendRequests()])
       .then(([f, r]) => { setFriends(f); setRequests(r); })
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, []);
-
-  useEffect(() => { refresh(); }, [refresh]);
+      .catch(() => {});
+  };
 
   useEffect(() => {
-    if (!searchQ.trim() || searchQ.trim().length < 2) {
-      setSearchResults([]);
-      return;
-    }
+    let live = true;
+    Promise.all([getFriends(), getFriendRequests()])
+      .then(([f, r]) => {
+        if (!live) return;
+        setFriends(f);
+        setRequests(r);
+        setLoading(false);
+      })
+      .catch(() => { if (live) setLoading(false); });
+    return () => { live = false; };
+  }, []);
+
+  useEffect(() => {
+    const q = searchQ.trim();
     const t = setTimeout(() => {
+      if (!q || q.length < 2) {
+        setSearchResults([]);
+        return;
+      }
       setSearching(true);
-      searchUsers(searchQ.trim())
+      searchUsers(q)
         .then(setSearchResults)
         .catch(() => setSearchResults([]))
         .finally(() => setSearching(false));
@@ -129,7 +139,7 @@ export default function Friends({ onBack }) {
           ) : friends.length === 0 ? (
             <div className="fr-empty-state">
               <span className="fr-empty-icon">👥</span>
-              <p>No friends yet. Use &quot;Find People&quot; to add some!</p>
+              <p>No friends yet. Use &apos;Find People&apos; to add some!</p>
             </div>
           ) : (
             <ul className="fr-list">

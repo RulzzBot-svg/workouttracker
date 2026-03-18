@@ -425,12 +425,15 @@ def activate_split(split_id):
     return jsonify({"ok": True})
 
 
+_STREAK_RESET_GAP = 3  # days without a log that resets the streak
+
+
 def _compute_streak(log_dates):
     """
     log_dates: list of datetime.date objects (may have duplicates), any order.
-    Returns (current_streak, longest_streak).
+    Returns: tuple[int, int] – (current_streak, longest_streak).
     A streak = count of active days (days with >=1 log).
-    It resets when there's a gap of 3+ days between any two consecutive active days.
+    It resets when there's a gap of _STREAK_RESET_GAP+ days between consecutive active days.
     """
     if not log_dates:
         return 0, 0
@@ -438,13 +441,13 @@ def _compute_streak(log_dates):
     unique_days = sorted(set(log_dates), reverse=True)
     today = _date.today()
 
-    if (today - unique_days[0]).days >= 3:
+    if (today - unique_days[0]).days >= _STREAK_RESET_GAP:
         current = 0
     else:
         current = 1
         for i in range(1, len(unique_days)):
             gap = (unique_days[i - 1] - unique_days[i]).days
-            if gap >= 3:
+            if gap >= _STREAK_RESET_GAP:
                 break
             current += 1
 
@@ -452,7 +455,7 @@ def _compute_streak(log_dates):
     run = 1
     for i in range(1, len(unique_days)):
         gap = (unique_days[i - 1] - unique_days[i]).days
-        if gap >= 3:
+        if gap >= _STREAK_RESET_GAP:
             longest = max(longest, run)
             run = 1
         else:

@@ -415,6 +415,15 @@ app.use((req, res, next) => {
    Streak helper
 ───────────────────────────────────────────── */
 
+const STREAK_RESET_GAP = 3; // days without a log that resets the streak
+
+/**
+ * Compute current and longest workout streaks.
+ * @param {Date[]} logDates - Array of Date objects representing log dates (may have duplicates)
+ * @returns {{ current_streak: number, longest_streak: number }}
+ * A streak = count of active days (days with >=1 log).
+ * It resets when there is a gap of STREAK_RESET_GAP+ days between consecutive active days.
+ */
 function computeStreak(logDates) {
   if (!logDates.length) return { current_streak: 0, longest_streak: 0 };
 
@@ -424,11 +433,11 @@ function computeStreak(logDates) {
   const daysDiff = (a, b) => Math.round((new Date(a) - new Date(b)) / 86400000);
 
   let current = 0;
-  if (Math.abs(daysDiff(today, unique[0])) < 3) {
+  if (Math.abs(daysDiff(today, unique[0])) < STREAK_RESET_GAP) {
     current = 1;
     for (let i = 1; i < unique.length; i++) {
       const gap = daysDiff(unique[i - 1], unique[i]);
-      if (gap >= 3) break;
+      if (gap >= STREAK_RESET_GAP) break;
       current++;
     }
   }
@@ -437,7 +446,7 @@ function computeStreak(logDates) {
   let run = 1;
   for (let i = 1; i < unique.length; i++) {
     const gap = daysDiff(unique[i - 1], unique[i]);
-    if (gap >= 3) { longest = Math.max(longest, run); run = 1; }
+    if (gap >= STREAK_RESET_GAP) { longest = Math.max(longest, run); run = 1; }
     else run++;
   }
   longest = Math.max(longest, run);

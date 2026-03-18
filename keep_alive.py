@@ -16,7 +16,7 @@ import urllib.request
 logging.basicConfig(level=logging.INFO, format="%(asctime)s  %(message)s")
 log = logging.getLogger(__name__)
 
-INTERVAL_SECONDS = 14 * 60  # 14 minutes – just under Render's 15-min sleep timer
+INTERVAL_SECONDS = 14 * 60  # 14 minutes – Render free tier sleeps after 15 minutes of inactivity
 
 
 def ping(url: str) -> None:
