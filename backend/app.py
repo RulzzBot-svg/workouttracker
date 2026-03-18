@@ -1,5 +1,6 @@
 import os
 import json
+from datetime import date as _date, timedelta as _timedelta
 from functools import wraps
 
 import bcrypt
@@ -87,6 +88,26 @@ def require_auth(fn):
             return jsonify({"error": "Invalid or expired token"}), 401
         return fn(*args, **kwargs)
     return wrapper
+
+
+@app.before_request
+def refresh_last_seen():
+    """Update last_seen for authenticated requests."""
+    auth = request.headers.get("Authorization", "")
+    if not auth.startswith("Bearer "):
+        return
+    try:
+        payload = decode_token(auth.split(" ", 1)[1])
+        user_id = payload["sub"]
+        conn = get_conn()
+        try:
+            with conn.cursor() as cur:
+                cur.execute("UPDATE users SET last_seen = NOW() WHERE id = %s", (user_id,))
+            conn.commit()
+        finally:
+            put_conn(conn)
+    except Exception:
+        pass
 
 
 # ─────────────────────────────────────────────
@@ -401,6 +422,314 @@ def activate_split(split_id):
         g.conn.rollback()
         app.logger.error("PUT /api/splits/%s/activate: %s", split_id, exc)
         return jsonify({"error": "Failed to activate split"}), 500
+    return jsonify({"ok": True})
+
+
+_STREAK_RESET_GAP = 3  # days without a log that resets the streak
+
+
+def _compute_streak(log_dates):
+    """
+    log_dates: list of datetime.date objects (may have duplicates), any order.
+    Returns: tuple[int, int] – (current_streak, longest_streak).
+    A streak = count of active days (days with >=1 log).
+    It resets when there's a gap of _STREAK_RESET_GAP+ days between consecutive active days.
+    """
+    if not log_dates:
+        return 0, 0
+
+    unique_days = sorted(set(log_dates), reverse=True)
+    today = _date.today()
+
+    if (today - unique_days[0]).days >= _STREAK_RESET_GAP:
+        current = 0
+    else:
+        current = 1
+        for i in range(1, len(unique_days)):
+            gap = (unique_days[i - 1] - unique_days[i]).days
+            if gap >= _STREAK_RESET_GAP:
+                break
+            current += 1
+
+    longest = 1
+    run = 1
+    for i in range(1, len(unique_days)):
+        gap = (unique_days[i - 1] - unique_days[i]).days
+        if gap >= _STREAK_RESET_GAP:
+            longest = max(longest, run)
+            run = 1
+        else:
+            run += 1
+    longest = max(longest, run)
+
+    return current, longest
+
+
+# ─────────────────────────────────────────────
+# User Profiles
+# ─────────────────────────────────────────────
+
+@app.get("/api/profile")
+@require_auth
+@with_db
+def get_profile():
+    with g.conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+        cur.execute(
+            """SELECT u.id, u.username, u.email, u.created_at, u.last_seen,
+                      p.bio, p.height, p.weight, p.tags, p.avatar_url
+               FROM users u
+               LEFT JOIN user_profiles p ON p.user_id = u.id
+               WHERE u.id = %s""",
+            (g.user_id,),
+        )
+        row = cur.fetchone()
+    if not row:
+        return jsonify({"error": "User not found"}), 404
+    data = dict(row)
+    with g.conn.cursor() as cur:
+        cur.execute(
+            "SELECT DISTINCT logged_at::date FROM workout_history WHERE user_id = %s",
+            (g.user_id,),
+        )
+        dates = [r[0] for r in cur.fetchall()]
+    current_streak, longest_streak = _compute_streak(dates)
+    data["current_streak"] = current_streak
+    data["longest_streak"] = longest_streak
+    if data.get("tags") is None:
+        data["tags"] = []
+    return jsonify(data)
+
+
+@app.put("/api/profile")
+@require_auth
+@with_db
+def update_profile():
+    data = request.get_json(silent=True) or {}
+    bio = data.get("bio")
+    height = data.get("height")
+    weight = data.get("weight")
+    tags = data.get("tags")
+    avatar_url = data.get("avatar_url")
+
+    with g.conn.cursor() as cur:
+        cur.execute(
+            """INSERT INTO user_profiles (user_id, bio, height, weight, tags, avatar_url, updated_at)
+               VALUES (%s, %s, %s, %s, %s, %s, NOW())
+               ON CONFLICT (user_id) DO UPDATE
+                 SET bio = COALESCE(EXCLUDED.bio, user_profiles.bio),
+                     height = COALESCE(EXCLUDED.height, user_profiles.height),
+                     weight = COALESCE(EXCLUDED.weight, user_profiles.weight),
+                     tags = COALESCE(EXCLUDED.tags, user_profiles.tags),
+                     avatar_url = COALESCE(EXCLUDED.avatar_url, user_profiles.avatar_url),
+                     updated_at = NOW()""",
+            (g.user_id, bio, height, weight, tags or [], avatar_url),
+        )
+    g.conn.commit()
+    return jsonify({"ok": True})
+
+
+@app.get("/api/profile/<int:target_user_id>")
+@require_auth
+@with_db
+def get_user_profile(target_user_id):
+    """Public profile for any user (friends can view)."""
+    with g.conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+        cur.execute(
+            """SELECT u.id, u.username, u.last_seen,
+                      p.bio, p.height, p.weight, p.tags, p.avatar_url
+               FROM users u
+               LEFT JOIN user_profiles p ON p.user_id = u.id
+               WHERE u.id = %s""",
+            (target_user_id,),
+        )
+        row = cur.fetchone()
+    if not row:
+        return jsonify({"error": "User not found"}), 404
+    data = dict(row)
+    with g.conn.cursor() as cur:
+        cur.execute(
+            "SELECT DISTINCT logged_at::date FROM workout_history WHERE user_id = %s",
+            (target_user_id,),
+        )
+        dates = [r[0] for r in cur.fetchall()]
+    current_streak, longest_streak = _compute_streak(dates)
+    data["current_streak"] = current_streak
+    data["longest_streak"] = longest_streak
+    if data.get("tags") is None:
+        data["tags"] = []
+    return jsonify(data)
+
+
+# ─────────────────────────────────────────────
+# Streak
+# ─────────────────────────────────────────────
+
+@app.get("/api/streak")
+@require_auth
+@with_db
+def get_streak():
+    with g.conn.cursor() as cur:
+        cur.execute(
+            "SELECT DISTINCT logged_at::date FROM workout_history WHERE user_id = %s",
+            (g.user_id,),
+        )
+        dates = [r[0] for r in cur.fetchall()]
+    current_streak, longest_streak = _compute_streak(dates)
+    return jsonify({"current_streak": current_streak, "longest_streak": longest_streak})
+
+
+# ─────────────────────────────────────────────
+# Friends
+# ─────────────────────────────────────────────
+
+@app.get("/api/users/search")
+@require_auth
+@with_db
+def search_users():
+    q = (request.args.get("q") or "").strip()
+    if not q or len(q) < 2:
+        return jsonify([])
+    with g.conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+        cur.execute(
+            """SELECT id, username, last_seen,
+                      (SELECT avatar_url FROM user_profiles WHERE user_id = u.id) AS avatar_url
+               FROM users u
+               WHERE LOWER(username) LIKE %s AND id != %s
+               LIMIT 20""",
+            (f"%{q.lower()}%", g.user_id),
+        )
+        rows = cur.fetchall()
+    return jsonify([dict(r) for r in rows])
+
+
+@app.get("/api/friends")
+@require_auth
+@with_db
+def get_friends():
+    with g.conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+        cur.execute(
+            """SELECT f.id AS friendship_id, f.status, f.created_at,
+                      f.requester_id, f.addressee_id,
+                      CASE WHEN f.requester_id = %s THEN f.addressee_id ELSE f.requester_id END AS friend_id,
+                      u.username AS friend_username, u.last_seen AS friend_last_seen,
+                      (SELECT avatar_url FROM user_profiles WHERE user_id = u.id) AS friend_avatar_url
+               FROM friendships f
+               JOIN users u ON u.id = CASE WHEN f.requester_id = %s THEN f.addressee_id ELSE f.requester_id END
+               WHERE (f.requester_id = %s OR f.addressee_id = %s)
+                 AND f.status = 'accepted'""",
+            (g.user_id, g.user_id, g.user_id, g.user_id),
+        )
+        rows = cur.fetchall()
+    return jsonify([dict(r) for r in rows])
+
+
+@app.get("/api/friends/requests")
+@require_auth
+@with_db
+def get_friend_requests():
+    with g.conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+        cur.execute(
+            """SELECT f.id AS friendship_id, f.status, f.created_at, f.requester_id,
+                      u.username AS requester_username,
+                      (SELECT avatar_url FROM user_profiles WHERE user_id = u.id) AS requester_avatar_url,
+                      'incoming' AS direction
+               FROM friendships f
+               JOIN users u ON u.id = f.requester_id
+               WHERE f.addressee_id = %s AND f.status = 'pending'""",
+            (g.user_id,),
+        )
+        incoming = [dict(r) for r in cur.fetchall()]
+        cur.execute(
+            """SELECT f.id AS friendship_id, f.status, f.created_at, f.addressee_id,
+                      u.username AS addressee_username,
+                      (SELECT avatar_url FROM user_profiles WHERE user_id = u.id) AS addressee_avatar_url,
+                      'outgoing' AS direction
+               FROM friendships f
+               JOIN users u ON u.id = f.addressee_id
+               WHERE f.requester_id = %s AND f.status = 'pending'""",
+            (g.user_id,),
+        )
+        outgoing = [dict(r) for r in cur.fetchall()]
+    return jsonify({"incoming": incoming, "outgoing": outgoing})
+
+
+@app.post("/api/friends")
+@require_auth
+@with_db
+def send_friend_request():
+    data = request.get_json(silent=True) or {}
+    addressee_id = data.get("user_id")
+    if not addressee_id:
+        return jsonify({"error": "user_id is required"}), 400
+    if int(addressee_id) == g.user_id:
+        return jsonify({"error": "Cannot add yourself"}), 400
+
+    try:
+        with g.conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor) as cur:
+            cur.execute(
+                """INSERT INTO friendships (requester_id, addressee_id)
+                   VALUES (%s, %s) RETURNING *""",
+                (g.user_id, int(addressee_id)),
+            )
+            row = dict(cur.fetchone())
+        g.conn.commit()
+    except psycopg2.errors.UniqueViolation:
+        g.conn.rollback()
+        return jsonify({"error": "Friend request already sent or friendship exists"}), 409
+    except Exception as exc:
+        g.conn.rollback()
+        return jsonify({"error": str(exc)}), 500
+    return jsonify(row), 201
+
+
+@app.put("/api/friends/<int:friendship_id>/accept")
+@require_auth
+@with_db
+def accept_friend_request(friendship_id):
+    with g.conn.cursor() as cur:
+        cur.execute(
+            """UPDATE friendships SET status = 'accepted'
+               WHERE id = %s AND addressee_id = %s AND status = 'pending'""",
+            (friendship_id, g.user_id),
+        )
+        if cur.rowcount == 0:
+            g.conn.rollback()
+            return jsonify({"error": "Request not found or already handled"}), 404
+    g.conn.commit()
+    return jsonify({"ok": True})
+
+
+@app.put("/api/friends/<int:friendship_id>/decline")
+@require_auth
+@with_db
+def decline_friend_request(friendship_id):
+    with g.conn.cursor() as cur:
+        cur.execute(
+            """UPDATE friendships SET status = 'declined'
+               WHERE id = %s AND addressee_id = %s AND status = 'pending'""",
+            (friendship_id, g.user_id),
+        )
+        if cur.rowcount == 0:
+            g.conn.rollback()
+            return jsonify({"error": "Request not found or already handled"}), 404
+    g.conn.commit()
+    return jsonify({"ok": True})
+
+
+@app.delete("/api/friends/<int:friendship_id>")
+@require_auth
+@with_db
+def remove_friend(friendship_id):
+    with g.conn.cursor() as cur:
+        cur.execute(
+            """DELETE FROM friendships
+               WHERE id = %s AND (requester_id = %s OR addressee_id = %s)""",
+            (friendship_id, g.user_id, g.user_id),
+        )
+        if cur.rowcount == 0:
+            g.conn.rollback()
+            return jsonify({"error": "Friendship not found"}), 404
+    g.conn.commit()
     return jsonify({"ok": True})
 
 

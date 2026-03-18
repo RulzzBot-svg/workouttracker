@@ -89,3 +89,52 @@ export const activateSplit = (id) =>
     headers: authHeaders(),
   }).then(handleResponse);
 
+/* ── Profile ── */
+export const getProfile = () =>
+  fetch(`${BASE}/profile`, { headers: authHeaders() }).then(handleResponse);
+
+export const updateProfile = (payload) =>
+  fetch(`${BASE}/profile`, {
+    method: 'PUT',
+    headers: authHeaders(),
+    body: JSON.stringify(payload),
+  }).then(handleResponse);
+
+export const getStreak = () =>
+  fetch(`${BASE}/streak`, { headers: authHeaders() }).then(handleResponse);
+
+/* ── Friends ── */
+export const searchUsers = (q) =>
+  fetch(`${BASE}/users/search?q=${encodeURIComponent(q)}`, { headers: authHeaders() }).then(handleResponse);
+
+export const getFriends = () =>
+  fetch(`${BASE}/friends`, { headers: authHeaders() }).then(handleResponse);
+
+export const getFriendRequests = () =>
+  fetch(`${BASE}/friends/requests`, { headers: authHeaders() }).then(handleResponse);
+
+export const sendFriendRequest = (userId) =>
+  fetch(`${BASE}/friends`, {
+    method: 'POST',
+    headers: authHeaders(),
+    body: JSON.stringify({ user_id: userId }),
+  }).then(handleResponse);
+
+export const acceptFriendRequest = (friendshipId) =>
+  fetch(`${BASE}/friends/${friendshipId}/accept`, {
+    method: 'PUT',
+    headers: authHeaders(),
+  }).then(handleResponse);
+
+export const declineFriendRequest = (friendshipId) =>
+  fetch(`${BASE}/friends/${friendshipId}/decline`, {
+    method: 'PUT',
+    headers: authHeaders(),
+  }).then(handleResponse);
+
+export const removeFriend = (friendshipId) =>
+  fetch(`${BASE}/friends/${friendshipId}`, {
+    method: 'DELETE',
+    headers: authHeaders(),
+  }).then(handleResponse);
+

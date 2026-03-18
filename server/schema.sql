@@ -46,3 +46,27 @@ CREATE TABLE IF NOT EXISTS split_days (
   exercises   JSONB NOT NULL DEFAULT '[]',
   UNIQUE (split_id, day_name)
 );
+
+-- User Profiles
+CREATE TABLE IF NOT EXISTS user_profiles (
+  user_id     BIGINT PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  bio         TEXT,
+  height      VARCHAR(50),
+  weight      VARCHAR(50),
+  tags        TEXT[] NOT NULL DEFAULT '{}',
+  avatar_url  TEXT,
+  updated_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- Friendships
+CREATE TABLE IF NOT EXISTS friendships (
+  id            BIGSERIAL PRIMARY KEY,
+  requester_id  BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  addressee_id  BIGINT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  status        VARCHAR(20) NOT NULL DEFAULT 'pending',
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE (requester_id, addressee_id)
+);
+
+-- Add last_seen to users (idempotent)
+ALTER TABLE users ADD COLUMN IF NOT EXISTS last_seen TIMESTAMPTZ;

@@ -159,7 +159,37 @@ INSERT INTO exercises (name, category) VALUES
   ('TRX Row',                   'Other'),
   ('TRX Push-up',               'Other'),
   ('Rope Climb',                'Other'),
-  ('Sled Pull',                 'Other')
+  ('Sled Pull',                 'Other'),
+  -- More Chest
+  ('Chest Press Machine',       'Chest'),
+  ('Cable Chest Press',         'Chest'),
+  -- More Back
+  ('Meadows Row',               'Back'),
+  ('Kroc Row',                  'Back'),
+  ('Rack Pull',                 'Back'),
+  -- More Legs
+  ('Leg Press (Wide Stance)',   'Legs'),
+  ('Pause Squats',              'Legs'),
+  ('Heel Elevated Squats',      'Legs'),
+  ('Reverse Hypers',            'Legs'),
+  -- More Shoulders
+  ('Cable Face Pulls',          'Shoulders'),
+  ('Bent-Over Rear Delt Raises','Shoulders'),
+  -- More Arms
+  ('Drag Curls',                'Arms'),
+  ('Cross-Body Hammer Curls',   'Arms'),
+  ('JM Press',                  'Arms'),
+  -- More Core
+  ('Hanging Knee Raises',       'Core'),
+  ('Decline Crunches',          'Core'),
+  ('Stability Ball Rollout',    'Core'),
+  -- More Cardio
+  ('Assault Bike',              'Cardio'),
+  ('Ski Erg',                   'Cardio'),
+  ('Hill Sprints',              'Cardio'),
+  -- More Other
+  ('Atlas Stone Carry',         'Other'),
+  ('Prowler Push',              'Other')
 ON CONFLICT (name) DO NOTHING;
 
 -- ─────────────────────────────────────────────
