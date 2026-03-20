@@ -602,3 +602,26 @@
 .wl-icon-btn:hover {
   background: #f3f4f6;
 }
+
+.wl-avatar-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #b48ce8 0%, #7c9ef5 100%);
+  color: #fff;
+  border: none;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.15s, transform 0.1s;
+  box-shadow: 0 2px 6px rgba(100,80,160,0.25);
+}
+
+.wl-avatar-btn:hover {
+  opacity: 0.88;
+  transform: scale(1.07);
+}
