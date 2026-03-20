@@ -25,6 +25,8 @@ const CATEGORIES = ['Chest', 'Back', 'Legs', 'Shoulders', 'Arms', 'Core', 'Cardi
 
 const today = () => new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
 
+const todayDateKey = () => new Date().toISOString().slice(0, 10);
+
 const DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
 const SPLIT_DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
 
@@ -88,8 +90,12 @@ const WORKOUT_SPLIT = {
 };
 
 export default function WorkoutLog({ user, onLogout, onProfile, onFriends }) {
-  // ── today's session (local only – deleting does NOT affect DB history) ──
-  const [entries, setEntries] = useState(() => storageGet('wl-entries', []));
+  // ── today's session (local only – auto-clears each new day) ──
+  const [entries, setEntries] = useState(() => {
+    const savedDate = storageGet('wl-log-date', null);
+    if (savedDate !== todayDateKey()) return [];
+    return storageGet('wl-entries', []);
+  });
 
   // ── permanent history from DB ──
   const [history, setHistory] = useState([]);
@@ -115,10 +121,20 @@ export default function WorkoutLog({ user, onLogout, onProfile, onFriends }) {
   const todayName = DAYS[new Date().getDay()];
   const defaultDay = SPLIT_DAYS.includes(todayName) ? todayName : 'Monday';
   const [viewDay, setViewDay] = useState(defaultDay);
-  const [checked, setChecked] = useState(() => storageGet('wl-checked', {}));
+  const [checked, setChecked] = useState(() => {
+    const savedDate = storageGet('wl-log-date', null);
+    if (savedDate !== todayDateKey()) return {};
+    return storageGet('wl-checked', {});
+  });
 
-  useEffect(() => { storageSet('wl-entries', entries); }, [entries]);
-  useEffect(() => { storageSet('wl-checked', checked); }, [checked]);
+  useEffect(() => {
+    storageSet('wl-entries', entries);
+    storageSet('wl-log-date', todayDateKey());
+  }, [entries]);
+  useEffect(() => {
+    storageSet('wl-checked', checked);
+    storageSet('wl-log-date', todayDateKey());
+  }, [checked]);
 
   // ── Load DB history on mount (no synchronous setState in effect body) ──
   useEffect(() => {
@@ -313,8 +329,15 @@ export default function WorkoutLog({ user, onLogout, onProfile, onFriends }) {
                 🔥 {streak.current_streak}
               </span>
             )}
-            <button className="wl-icon-btn" onClick={onProfile} title="Profile">👤</button>
             <button className="wl-icon-btn" onClick={onFriends} title="Friends">👥</button>
+            <button
+              className="wl-avatar-btn"
+              onClick={onProfile}
+              title={`Profile: ${user?.username}`}
+              aria-label="Open profile"
+            >
+              {user?.username?.slice(0, 2).toUpperCase() || '??'}
+            </button>
             <button className="wl-logout-btn" onClick={onLogout}>Log out</button>
           </div>
         )}
