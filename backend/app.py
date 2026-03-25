@@ -1,11 +1,15 @@
+import atexit
+import logging
 import os
 import json
+import urllib.request
 from datetime import date as _date, timedelta as _timedelta
 from functools import wraps
 
 import bcrypt
 import jwt
 import psycopg2.extras
+from apscheduler.schedulers.background import BackgroundScheduler
 from dotenv import load_dotenv
 from flask import Flask, request, jsonify, g
 from flask_cors import CORS
@@ -29,6 +33,31 @@ limiter = Limiter(
     default_limits=["200 per 15 minutes"],
     storage_uri="memory://",
 )
+
+# ─────────────────────────────────────────────
+# Keep-alive cron scheduler
+# Pings /api/health every 14 minutes so Render's free-tier instance
+# never goes to sleep (which happens after 15 minutes of inactivity).
+# RENDER_EXTERNAL_URL is set automatically by Render.
+# ─────────────────────────────────────────────
+
+_log = logging.getLogger(__name__)
+
+def _self_ping() -> None:
+    base_url = os.environ.get("RENDER_EXTERNAL_URL", "").rstrip("/")
+    if not base_url:
+        return
+    url = f"{base_url}/api/health"
+    try:
+        with urllib.request.urlopen(url, timeout=10) as resp:
+            _log.info("Keep-alive ping → %s HTTP %s", url, resp.status)
+    except Exception as exc:
+        _log.warning("Keep-alive ping failed: %s", exc)
+
+_scheduler = BackgroundScheduler(daemon=True)
+_scheduler.add_job(_self_ping, "interval", minutes=14, id="keep_alive")
+_scheduler.start()
+atexit.register(_scheduler.shutdown)
 
 # ─────────────────────────────────────────────
 # DB helper
